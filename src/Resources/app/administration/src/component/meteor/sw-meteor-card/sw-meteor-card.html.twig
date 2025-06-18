@@ -1,0 +1,62 @@
+{% block sw_meteor_card_content_wrapper %}
+    {% parent %}
+    <div v-if="isExtension" style="background-color:rgba(168, 129, 175, 0.2); border-bottom-left-radius:8px;border-bottom-right-radius:8px;">
+        <hr style="opacity:0.3">
+        <div class="inner-content">
+            <div class="inline-form-row">
+                <!-- Name Feld -->
+                <div class="inline-field-container">
+                    <label class="inline-label rvdw-color-true-text">Quelle:</label>
+                    <sw-text-field
+                            v-model:value="localRepositoryUrl"
+                            :placeholder="'Quelle (URL)'"
+                            class="inline-input"
+                            @blur="onSaveSettings"
+                    />
+                </div>
+                <div class="button-container">
+                    <sw-button
+                            variant="primary"
+                            @click="checkUpdate"
+                            class="update-button rvdw-color-false"
+                            :disabled="!localRepositoryUrl || isLoadingVersions"
+                            :loading="isLoadingVersions"
+                    >
+                        {{ isLoadingVersions ? 'Laden...' : 'Check' }}
+                    </sw-button>
+                </div>
+                <!-- Version Dropdown -->
+                <div class="inline-field-container">
+                    <label class="inline-label rvdw-color-true-text">Version:</label>
+                    <sw-select-field
+                            v-model:value="selectedVersion"
+                            :placeholder="versionOptions.length > 0 ? null : 'Version auswählen'"
+                            class="inline-input version"
+                            :disabled="isLoadingVersions"
+                    >
+                        <option
+                            v-for="option in versionOptions"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </option>
+                    </sw-select-field>
+                </div>
+
+                <!-- Update Button -->
+                <div class="button-container">
+                    <sw-button
+                            variant="primary"
+                            @click="Update"
+                            class="update-button rvdw-color-true"
+                            :disabled="!selectedVersion || isLoadingVersions"
+                            :loading="isLoadingVersions"
+                    >
+                        {{ isLoadingVersions ? 'Laden...' : 'Update' }}
+                    </sw-button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
