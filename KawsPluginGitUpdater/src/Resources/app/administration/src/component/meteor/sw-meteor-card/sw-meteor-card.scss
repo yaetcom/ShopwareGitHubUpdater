@@ -1,0 +1,109 @@
+.inner-content {
+  padding: 5px 25px;
+}
+.inline-form-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: nowrap;
+
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+.inline-field-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:first-child {
+    flex: 1; /* Name-Feld nimmt verfügbaren Platz */
+    min-width: 200px;
+  }
+
+  &:nth-child(2) {
+    flex: 0 0 auto; /* Version-Dropdown kompakt */
+    min-width: 140px;
+  }
+}
+
+.button-container {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.inline-label {
+  font-weight: 500;
+  color: #52667a;
+  font-size: 14px;
+  white-space: nowrap;
+
+  /* Kompakte Label-Breiten */
+  &:first-of-type {
+    min-width: 45px; /* "Name:" */
+  }
+
+  &:last-of-type {
+    min-width: 55px; /* "Version:" */
+  }
+}
+
+.inline-input {
+    flex: 1;
+    min-width: 300px;
+  margin-bottom:0 !important;
+
+}
+
+.version {
+  min-width:150px;
+}
+
+
+
+.inline-input input{
+  line-height:20px;
+  padding:5px 20px;
+}
+
+.inline-input select {
+  line-height:20px;
+  padding:5px 20px;
+}
+
+.update-button {
+  white-space: nowrap;
+  font-size: 13px;
+  min-width: 100px;
+  line-height:32px !important;
+  padding: 0 0;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+}
+
+/* Alternative: Einfachere CSS-Klasse */
+.simple-inline-fields {
+  .sw-field {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .sw-field__label {
+    margin-bottom: 0 !important;
+    margin-right: 0 !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+  }
+
+  .sw-field__addition {
+    flex: 1 !important;
+  }
+}

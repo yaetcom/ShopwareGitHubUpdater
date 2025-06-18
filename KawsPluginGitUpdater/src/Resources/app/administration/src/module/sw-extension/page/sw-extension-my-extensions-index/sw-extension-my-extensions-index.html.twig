@@ -1,0 +1,58 @@
+{% block sw_extension_my_extensions_index_smart_bar_actions %}
+    <template #smart-bar-actions>
+        <sw-button-group
+            class="sw-product-detail__save-button-group"
+            :split-button="true"
+        >
+
+            <sw-extension-file-upload v-if="acl.can('system.plugin_upload') || !extensionManagementDisabled" />
+            <sw-context-button>
+                <template #button>
+                    <sw-button
+                        class="sw-product-detail__button-context-menu"
+                        square
+                        variant="primary"
+                        >
+                        <sw-icon
+                            name="regular-chevron-down-xs"
+                            size="16"
+                        />
+                    </sw-button>
+                </template>
+                <sw-context-menu-item
+                        @click="onGitInstall"
+                >
+                    Erweiterung via Git Installieren
+                </sw-context-menu-item>
+            </sw-context-button>
+
+        </sw-button-group>
+    </template>
+{% endblock %}
+
+{% block sw_extension_my_extensions_index %}
+    {% parent %}
+    <sw-modal
+            v-if="showGitInstallModal"
+            title="Plugin aus Git installieren"
+            @modal-close="showGitInstallModal = false"
+            @modal-confirm="submitGitInstall"
+            :confirm-text="'Installieren'"
+            :cancel-text="'Abbrechen'"
+            :is-loading="isInstalling"
+    >
+        <div class="sw-field sw-field--medium">
+            <label class="sw-label">GitHub-URL</label>
+            <sw-text-field v-model:value="gitInstallUrl" placeholder="https://github.com/Benutzer/Repo" />
+        </div>
+
+        <template #modal-footer>
+            <sw-button variant="default" @click="showGitInstallModal = false">
+                Abbrechen
+            </sw-button>
+            <sw-button variant="primary" @click="submitGitInstall">
+                Installieren
+            </sw-button>
+        </template>
+    </sw-modal>
+{% endblock %}
