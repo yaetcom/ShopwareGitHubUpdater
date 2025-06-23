@@ -9,6 +9,7 @@
 
 * This Plugin itself - Shopware GitHub Updater - https://github.com/yaetcom/ShopwareGitHubUpdater
 * Shopware Language Pack - https://github.com/shopware/SwagLanguagePack/
+* PayPal - https://github.com/shopware/SwagPayPal
 * PostFinance (Switzerland) - https://github.com/pfpayments/shopware-6
 * FroSh Tools - https://github.com/FriendsOfShopware/FroshTools
 * FroSh Developer Helper - https://github.com/FriendsOfShopware/FroshDevelopmentHelper
