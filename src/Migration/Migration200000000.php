@@ -16,7 +16,7 @@ class Migration200000000 extends MigrationStep
     public function update (Connection $connection): void
     {
         $connection->executeStatement('
-    CREATE TABLE `plugin_git` (
+    CREATE TABLE IF NOT EXISTS `plugin_git` (
         `id` BINARY(16) NOT NULL,
         `plugin_id` BINARY(16) NOT NULL,
         `source` VARCHAR(255) NOT NULL DEFAULT \'shopware\',
