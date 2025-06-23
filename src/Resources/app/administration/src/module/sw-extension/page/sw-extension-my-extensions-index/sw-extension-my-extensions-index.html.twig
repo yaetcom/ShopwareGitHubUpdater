@@ -8,16 +8,17 @@
             <sw-extension-file-upload v-if="acl.can('system.plugin_upload') || !extensionManagementDisabled" />
             <sw-context-button>
                 <template #button>
-                    <sw-button
+                    <mt-button
                         class="sw-product-detail__button-context-menu"
                         square
                         variant="primary"
+                        size="default"
                         >
                         <sw-icon
                             name="regular-chevron-down-xs"
                             size="16"
                         />
-                    </sw-button>
+                    </mt-button>
                 </template>
                 <sw-context-menu-item
                         @click="onGitInstall"

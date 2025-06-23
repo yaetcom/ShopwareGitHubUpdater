@@ -119,8 +119,8 @@ class GithubUpdateController
             $this->copyDirectory($extractedFolder, $targetFolder);
             $filesystem->remove($extractedFolder);
 
-            // Plugin in Shopware aktualisieren (Datenbank-Eintrag)
             $this->refreshPluginInShopware($extensionName);
+            $this->clearCache();
 
             return new JsonResponse([
                 'success' => true,
@@ -250,7 +250,7 @@ class GithubUpdateController
 
                 if (
                     isset($composer['require']['shopware/core']) &&
-                    str_contains($composer['require']['shopware/core'], $shopwareVersion)
+                    $this->isVersionCompatible($composer['require']['shopware/core'], $shopwareVersion)
                 ) {
                     $compatibleTags[] = $tag;
                 }
@@ -289,10 +289,65 @@ class GithubUpdateController
         return $response;
     }
 
+    private function isVersionCompatible(string $constraint, string $targetVersion): bool
+    {
+        // Normalize target version by removing 'v' or 'V' prefix
+        $targetVersion = ltrim($targetVersion, 'vV');
+        
+        // Handle OR constraints (e.g., "~6.6.0 || ~6.7.0")
+        if (str_contains($constraint, '||')) {
+            $constraints = explode('||', $constraint);
+            foreach ($constraints as $singleConstraint) {
+                if ($this->matchesVersionConstraint(trim($singleConstraint), $targetVersion)) {
+
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Handle single constraint
+        return $this->matchesVersionConstraint($constraint, $targetVersion);
+    }
+
+    private function matchesVersionConstraint(string $constraint, string $targetVersion): bool
+    {
+        $constraint = trim($constraint);
+
+        if (str_starts_with($constraint, '~')) {
+            $versionPart = ltrim($constraint, '~');
+            $parts = explode('.', $versionPart);
+            
+            if (count($parts) >= 2) {
+                $major = $parts[0];
+                $minor = $parts[1];
+                $targetMajorMinor = $major . '.' . $minor;
+                
+                return str_starts_with($targetVersion, $targetMajorMinor);
+            }
+        }
+
+        if (str_starts_with($constraint, '^')) {
+            $versionPart = ltrim($constraint, '^');
+            $parts = explode('.', $versionPart);
+            
+            if (count($parts) >= 1) {
+                $major = $parts[0];
+                return str_starts_with($targetVersion, $major . '.');
+            }
+        }
+
+        if (str_contains($constraint, '*')) {
+            $pattern = str_replace('*', '', $constraint);
+            return str_starts_with($targetVersion, $pattern);
+        }
+
+        return str_contains($constraint, $targetVersion);
+    }
+
     private function refreshPluginInShopware(string $pluginName): void
     {
         try {
-            // Führe plugin:refresh Befehl aus um Plugin-Metadaten zu aktualisieren
             $command = sprintf('cd %s && bin/console plugin:refresh %s --no-interaction', 
                 dirname(__DIR__, 5), 
                 escapeshellarg($pluginName)
@@ -304,8 +359,24 @@ class GithubUpdateController
                 throw new \RuntimeException('Plugin refresh failed: ' . implode("\n", $output));
             }
         } catch (\Exception $e) {
-            // Wenn der Befehl fehlschlägt, trotzdem weitermachen
             error_log('Plugin refresh failed: ' . $e->getMessage());
+        }
+    }
+
+    private function clearCache(): void
+    {
+        try {
+            $command = sprintf('cd %s && bin/console cache:clear --no-interaction', 
+                dirname(__DIR__, 5)
+            );
+            
+            exec($command . ' 2>&1', $output, $returnCode);
+            
+            if ($returnCode !== 0) {
+                throw new \RuntimeException('Cache clear failed: ' . implode("\n", $output));
+            }
+        } catch (\Exception $e) {
+            error_log('Cache clear failed: ' . $e->getMessage());
         }
     }
 
