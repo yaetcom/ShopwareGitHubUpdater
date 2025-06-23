@@ -25,6 +25,13 @@ Component.override('sw-extension-my-extensions-index', {
         };
     },
 
+    computed: {
+        isShopware67() {
+            const version = Shopware.Context.app.config.version.slice(0,3);
+            return version === '6.7';
+        }
+    },
+
     methods: {
         onGitInstall() {
             this.gitInstallUrl = '';

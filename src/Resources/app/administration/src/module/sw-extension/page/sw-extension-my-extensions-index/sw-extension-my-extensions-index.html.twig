@@ -9,6 +9,7 @@
             <sw-context-button>
                 <template #button>
                     <mt-button
+                        v-if="isShopware67"
                         class="sw-product-detail__button-context-menu"
                         square
                         variant="primary"
@@ -19,6 +20,18 @@
                             size="16"
                         />
                     </mt-button>
+                    <sw-button
+                        v-else
+                        class="sw-product-detail__button-context-menu"
+                        square
+                        variant="primary"
+                        size="default"
+                        >
+                        <sw-icon
+                            name="regular-chevron-down-xs"
+                            size="16"
+                        />
+                    </sw-button>
                 </template>
                 <sw-context-menu-item
                         @click="onGitInstall"

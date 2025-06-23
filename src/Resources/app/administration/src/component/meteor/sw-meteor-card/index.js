@@ -121,7 +121,6 @@ Component.override('sw-meteor-card', {
             console.log('Loading started, isLoadingVersions:', this.isLoadingVersions);
             try {
                 console.log('Checking updates for:', this.currentExtension.name, 'from:', this.localRepositoryUrl);
-                console.log(this.currentExtension);
                 // Temporär repositoryUrl für die API setzen
                 const tempExtension = { ...this.currentExtension, repositoryUrl: this.localRepositoryUrl };
                 await this.checkForNewVersion(tempExtension);
