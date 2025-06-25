@@ -64,6 +64,15 @@ class ExtensionGithubLinkDefinition extends EntityDefinition
             (new StringField('source', 'source'))
                 ->addFlags(new Required(), new ApiAware()),
 
+            (new StringField('installed_branch', 'installedBranch'))
+                ->addFlags(new ApiAware()),
+                
+            (new StringField('installed_commit', 'installedCommit'))
+                ->addFlags(new ApiAware()),
+                
+            (new StringField('plugin_version', 'pluginVersion'))
+                ->addFlags(new ApiAware()),
+
             new CreatedAtField(),
             new UpdatedAtField(),
         ]);

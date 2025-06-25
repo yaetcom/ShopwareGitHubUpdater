@@ -57,15 +57,52 @@
     >
         <div class="sw-field sw-field--medium">
             <label class="sw-label">GitHub-URL</label>
-            <sw-text-field v-model:value="gitInstallUrl" placeholder="https://github.com/Benutzer/Repo" />
+            <sw-text-field 
+                v-model:value="gitInstallUrl" 
+                placeholder="https://github.com/Benutzer/Repo"
+                @update:value="loadAvailableVersions"
+            />
+        </div>
+
+        <div v-if="isLoadingVersions" class="sw-field sw-field--medium">
+            <sw-loader />
+            <p>Lade verfügbare Versionen...</p>
+        </div>
+
+        <div v-if="showVersionSelection && !isLoadingVersions" class="sw-field sw-field--medium">
+            <label class="sw-label">Version auswählen</label>
+            <sw-single-select
+                v-model:value="selectedVersion"
+                :options="availableVersions.map(version => ({ value: version, label: version }))"
+                :placeholder="'Version wählen'"
+            />
+            <sw-help-text :text="`${availableVersions.length} kompatible Version(en) gefunden`" />
+        </div>
+
+        <div v-if="!showVersionSelection && !isLoadingVersions && gitInstallUrl" class="sw-field sw-field--medium">
+            <sw-alert variant="warning">
+                Keine kompatiblen Versionen für diese Shopware-Version gefunden oder Repository-URL ungültig.
+            </sw-alert>
+        </div>
+
+        <div v-if="showVersionSelection && selectedVersion" class="sw-field sw-field--medium">
+            <sw-alert variant="info">
+                <strong>Zu installierende Version:</strong> {{ selectedVersion }}
+                <br>
+                <small>Repository: {{ gitInstallUrl }}</small>
+            </sw-alert>
         </div>
 
         <template #modal-footer>
             <sw-button variant="default" @click="showGitInstallModal = false">
                 Abbrechen
             </sw-button>
-            <sw-button variant="primary" @click="submitGitInstall">
-                Installieren
+            <sw-button 
+                variant="primary" 
+                @click="submitGitInstall"
+                :disabled="!gitInstallUrl || isLoadingVersions || !selectedVersion"
+            >
+                {{ selectedVersion ? `Version ${selectedVersion} installieren` : 'Installieren' }}
             </sw-button>
         </template>
     </sw-modal>

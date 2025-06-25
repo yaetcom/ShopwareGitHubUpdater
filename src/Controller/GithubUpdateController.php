@@ -16,14 +16,36 @@ class GithubUpdateController
     public function checkVersion(Request $request): JsonResponse
     {
         $repoUrl = $request->get('name');
+        $currentVersion = $request->get('currentVersion'); // Aktuelle Plugin-Version
+        $installedBranch = $request->get('installedBranch'); // Aktuell installierter Branch
+        
         try {
             $latestTag = $this->getLatestGithubTag($repoUrl);
             $allVersions = $this->getAllCompatibleVersions($repoUrl);
             
+            // Spezielle Logik für branch-basierte Updates
+            $updateAvailable = false;
+            $updateInfo = null;
+            
+            if ($this->isBranchName($latestTag) && $installedBranch) {
+                // Branch-basierter Update-Check über Commit-Vergleich
+                $updateInfo = $this->checkBranchUpdate($repoUrl, $installedBranch, $latestTag);
+                $updateAvailable = $updateInfo['hasUpdate'];
+            } elseif (!$this->isBranchName($latestTag) && $currentVersion) {
+                // Tag-basierter Update-Check über Versionsnummern
+                $updateAvailable = version_compare(
+                    ltrim($currentVersion, 'vV'), 
+                    ltrim($latestTag, 'vV'), 
+                    '<'
+                );
+            }
+            
             return new JsonResponse([
                 'success' => true, 
                 'latestVersion' => $latestTag,
-                'versions' => $allVersions
+                'versions' => $allVersions,
+                'updateAvailable' => $updateAvailable,
+                'updateInfo' => $updateInfo
             ]);
         } catch (\Exception $e) {
             return new JsonResponse(['success' => false, 'message' => $e->getMessage()]);
@@ -45,7 +67,18 @@ class GithubUpdateController
         }
 
         try {
-            $zipUrl = $githubUrl . '/zipball/' . $tag;
+            // Normalisiere die GitHub-URL (entferne /tree/branch etc.)
+            $baseGithubUrl = $this->normalizeGithubUrl($githubUrl);
+            
+            // Prüfe ob es ein Branch ist (enthält keinen 'v' oder Punkte)
+            $isBranch = $this->isBranchName($tag);
+            
+            if ($isBranch) {
+                $zipUrl = $baseGithubUrl . '/archive/refs/heads/' . $tag . '.zip';
+            } else {
+                $zipUrl = $baseGithubUrl . '/zipball/' . $tag;
+            }
+            
             $pluginDir = '../custom/plugins/';
             $zipPath = sprintf('../custom/plugins/%s.zip', $extensionName);
             $tempDir = $pluginDir . 'temp_' . uniqid() . '/';
@@ -169,7 +202,8 @@ class GithubUpdateController
 
         $compatibleTags = $this->getCompatibleShopwareTagsFromGithub($repoUrl, $shopwareMajor);
         if (empty($compatibleTags)) {
-            throw new \Exception("Keine kompatiblen Tags für Shopware $shopwareMajor gefunden.");
+            // Fallback: Wenn keine Tags vorhanden, versuche passenden Branch zu finden
+            return $this->getCompatibleBranch($repoUrl, $shopwareMajor);
         }
 
         $normalizedTags = array_map(function ($tag) {
@@ -204,7 +238,13 @@ class GithubUpdateController
         $compatibleTags = $this->getCompatibleShopwareTagsFromGithub($repoUrl, $shopwareMajor);
         
         if (empty($compatibleTags)) {
-            throw new \Exception("Keine kompatiblen Tags für Shopware $shopwareMajor gefunden.");
+            // Fallback: Versuche kompatible Branches zu finden
+            try {
+                $branch = $this->getCompatibleBranch($repoUrl, $shopwareMajor);
+                return [$branch];
+            } catch (\Exception $e) {
+                throw new \Exception("Keine kompatiblen Tags oder Branches für Shopware $shopwareMajor gefunden.");
+            }
         }
 
         // Sortiere Versionen absteigend (neueste zuerst)
@@ -221,13 +261,7 @@ class GithubUpdateController
 
     private function getCompatibleShopwareTagsFromGithub(string $repoUrl, string $shopwareVersion): array
     {
-        $pattern = '/github\.com\/([^\/]+\/[^\/]+)/';
-        if (!preg_match($pattern, $repoUrl, $matches)) {
-            throw new \InvalidArgumentException("Ungültige GitHub-URL: $repoUrl");
-        }
-
-        $repoPath = rtrim($matches[1], '/');
-
+        $repoPath = $this->extractRepoPath($repoUrl);
         $tagListUrl = "https://api.github.com/repos/$repoPath/tags";
 
         $tagsJson = $this->curlGithub($tagListUrl);
@@ -377,6 +411,142 @@ class GithubUpdateController
             }
         } catch (\Exception $e) {
             error_log('Cache clear failed: ' . $e->getMessage());
+        }
+    }
+
+    private function getCompatibleBranch(string $repoUrl, string $shopwareMajor): string
+    {
+        $repoPath = $this->extractRepoPath($repoUrl);
+        $branchListUrl = "https://api.github.com/repos/$repoPath/branches";
+
+        $branchesJson = $this->curlGithub($branchListUrl);
+        $branches = json_decode($branchesJson, true);
+
+        if (!is_array($branches)) {
+            throw new \RuntimeException("Konnte keine Branches vom Repository abrufen.");
+        }
+
+        $compatibleBranches = [];
+
+        foreach ($branches as $branchInfo) {
+            $branchName = $branchInfo['name'];
+            
+            // Prüfe zuerst, ob Branch-Name mit Shopware-Version übereinstimmt
+            if (str_contains($branchName, $shopwareMajor)) {
+                $composerUrl = "https://raw.githubusercontent.com/$repoPath/$branchName/composer.json";
+                
+                try {
+                    $composerRaw = $this->curlGithub($composerUrl);
+                    $composer = json_decode($composerRaw, true);
+
+                    if (
+                        isset($composer['require']['shopware/core']) &&
+                        $this->isVersionCompatible($composer['require']['shopware/core'], $shopwareMajor)
+                    ) {
+                        $compatibleBranches[] = $branchName;
+                    }
+                } catch (\Throwable $e) {
+                    continue;
+                }
+            }
+        }
+
+        if (empty($compatibleBranches)) {
+            throw new \Exception("Keine kompatiblen Branches für Shopware $shopwareMajor gefunden.");
+        }
+
+        // Bevorzuge exakten Match (z.B. "6.7" für Shopware 6.7)
+        if (in_array($shopwareMajor, $compatibleBranches)) {
+            return $shopwareMajor;
+        }
+
+        // Sortiere nach Länge (längere Branch-Namen zuerst, da sie spezifischer sind)
+        usort($compatibleBranches, function($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        return $compatibleBranches[0];
+    }
+
+    private function isBranchName(string $name): bool
+    {
+        // Branch-Namen enthalten normalerweise keine Versionspunkte oder 'v' Präfixe
+        // Typische Branch-Namen: "6.7", "main", "develop", "feature/xyz"
+        return !preg_match('/^v?\d+\.\d+\.\d+/', $name);
+    }
+
+    private function extractRepoPath(string $repoUrl): string
+    {
+        // Normalisiere verschiedene GitHub-URL-Formate:
+        // https://github.com/owner/repo
+        // https://github.com/owner/repo/tree/branch
+        // https://github.com/owner/repo/releases/tag/v1.0.0
+        // etc.
+        
+        $pattern = '/github\.com\/([^\/]+\/[^\/]+)/';
+        if (!preg_match($pattern, $repoUrl, $matches)) {
+            throw new \InvalidArgumentException("Ungültige GitHub-URL: $repoUrl");
+        }
+
+        return rtrim($matches[1], '/');
+    }
+
+    private function normalizeGithubUrl(string $repoUrl): string
+    {
+        $repoPath = $this->extractRepoPath($repoUrl);
+        return "https://github.com/$repoPath";
+    }
+
+    private function checkBranchUpdate(string $repoUrl, string $installedBranch, string $latestBranch): array
+    {
+        $repoPath = $this->extractRepoPath($repoUrl);
+        
+        try {
+            // Hole die neuesten Commits beider Branches
+            $installedCommitUrl = "https://api.github.com/repos/$repoPath/commits/$installedBranch";
+            $latestCommitUrl = "https://api.github.com/repos/$repoPath/commits/$latestBranch";
+            
+            $installedCommitData = json_decode($this->curlGithub($installedCommitUrl), true);
+            $latestCommitData = json_decode($this->curlGithub($latestCommitUrl), true);
+            
+            if (!isset($installedCommitData['sha']) || !isset($latestCommitData['sha'])) {
+                return ['hasUpdate' => false, 'error' => 'Commit-Daten konnten nicht abgerufen werden'];
+            }
+            
+            $installedCommitSha = $installedCommitData['sha'];
+            $latestCommitSha = $latestCommitData['sha'];
+            $installedCommitDate = $installedCommitData['commit']['author']['date'] ?? null;
+            $latestCommitDate = $latestCommitData['commit']['author']['date'] ?? null;
+            
+            // Vergleiche die Commit-SHAs
+            $hasUpdate = $installedCommitSha !== $latestCommitSha;
+            
+            return [
+                'hasUpdate' => $hasUpdate,
+                'installedCommit' => substr($installedCommitSha, 0, 7),
+                'latestCommit' => substr($latestCommitSha, 0, 7),
+                'installedDate' => $installedCommitDate,
+                'latestDate' => $latestCommitDate,
+                'commitsBehind' => $hasUpdate ? $this->getCommitsBehind($repoPath, $installedCommitSha, $latestCommitSha) : 0
+            ];
+            
+        } catch (\Exception $e) {
+            return [
+                'hasUpdate' => false, 
+                'error' => 'Branch-Update-Check fehlgeschlagen: ' . $e->getMessage()
+            ];
+        }
+    }
+    
+    private function getCommitsBehind(string $repoPath, string $baseCommit, string $headCommit): int
+    {
+        try {
+            $compareUrl = "https://api.github.com/repos/$repoPath/compare/$baseCommit...$headCommit";
+            $compareData = json_decode($this->curlGithub($compareUrl), true);
+            
+            return $compareData['ahead_by'] ?? 0;
+        } catch (\Exception $e) {
+            return 0; // Fallback bei Fehlern
         }
     }
 

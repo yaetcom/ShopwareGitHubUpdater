@@ -13,6 +13,12 @@ class ExtensionGithubLinkEntity extends Entity
     protected ?PluginEntity $plugin = null;
 
     protected string $githubUrl;
+    
+    protected ?string $installedBranch = null;
+    
+    protected ?string $installedCommit = null;
+    
+    protected ?string $pluginVersion = null;
 
     public function getPluginId (): string
     {
@@ -42,5 +48,35 @@ class ExtensionGithubLinkEntity extends Entity
     public function setGithubUrl (string $githubUrl): void
     {
         $this->githubUrl = $githubUrl;
+    }
+    
+    public function getInstalledBranch(): ?string
+    {
+        return $this->installedBranch;
+    }
+    
+    public function setInstalledBranch(?string $installedBranch): void
+    {
+        $this->installedBranch = $installedBranch;
+    }
+    
+    public function getInstalledCommit(): ?string
+    {
+        return $this->installedCommit;
+    }
+    
+    public function setInstalledCommit(?string $installedCommit): void
+    {
+        $this->installedCommit = $installedCommit;
+    }
+    
+    public function getPluginVersion(): ?string
+    {
+        return $this->pluginVersion;
+    }
+    
+    public function setPluginVersion(?string $pluginVersion): void
+    {
+        $this->pluginVersion = $pluginVersion;
     }
 }

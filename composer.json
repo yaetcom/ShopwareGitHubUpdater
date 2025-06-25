@@ -2,7 +2,7 @@
     "name": "kaws-plugin-git-updater/kaws-plugin-git-updater",
     "description": "kaws-plugin-git-updater/kaws-plugin-git-updater",
     "type": "shopware-platform-plugin",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "license": "MIT",
     "require": {
         "shopware/core": "~6.6.0 || ~6.7.0"
