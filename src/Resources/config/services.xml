@@ -13,5 +13,10 @@
         <service id="KawsPluginGitUpdater\Controller\GithubUpdateController" public="true">
             <tag name="controller.service_arguments"/>
         </service>
+
+        <service id="KawsPluginGitUpdater\Controller\GithubInstallController" public="true">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <tag name="controller.service_arguments"/>
+        </service>
     </services>
 </container>

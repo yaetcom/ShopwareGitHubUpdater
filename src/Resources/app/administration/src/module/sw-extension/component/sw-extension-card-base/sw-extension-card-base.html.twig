@@ -10,6 +10,17 @@
             {% block sw_extension_card_base_activation_switch_switch %}
 
                 <mt-switch
+                        v-if="isShopware67"
+                        v-model="isActive"
+                        v-tooltip="{
+                showDelay: 300,
+                message: $tc('sw-extension-store.component.sw-extension-card-base.allowDisableTooltip'),
+                disabled: allowDisable
+            }"
+                        :disabled="extensionManagementDisabled || !isInstalled || (isActive && !allowDisable)"
+                />
+                <sw-switch-field
+                        v-else
                         v-model="isActive"
                         v-tooltip="{
                 showDelay: 300,
@@ -119,6 +130,12 @@
             <span class="sw-extension-card-base__context-menu-privacy-link">
                 {{ $tc('sw-extension-store.component.sw-extension-card-base.contextMenu.privacyAndSafetyLabel') }}
                 <mt-icon
+                        v-if="isShopware67"
+                        name="regular-external-link-s"
+                        size="10px"
+                />
+                <sw-icon
+                        v-else
                         name="regular-external-link-s"
                         size="10px"
                 />

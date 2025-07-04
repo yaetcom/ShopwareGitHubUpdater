@@ -50,6 +50,7 @@ Component.override('sw-extension-my-extensions-index', {
             if (!this.gitInstallUrl) return;
 
             this.isLoadingVersions = true;
+            console.log("TEST");
 
             try {
                 const response = await fetch(`/api/_action/github/install-versions?url=${encodeURIComponent(this.gitInstallUrl)}`, {

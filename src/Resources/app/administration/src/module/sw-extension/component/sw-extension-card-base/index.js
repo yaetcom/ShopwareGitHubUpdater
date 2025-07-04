@@ -40,6 +40,11 @@ Component.override('sw-extension-card-base', {
                 { value: 'git', name: 'GitHub' },
             ];
         },
+        
+        isShopware67() {
+            const version = Shopware.Context.app.config.version.slice(0,3);
+            return version === '6.7';
+        }
     },
 
     methods: {

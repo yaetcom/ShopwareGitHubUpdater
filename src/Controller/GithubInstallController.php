@@ -6,19 +6,19 @@ namespace KawsPluginGitUpdater\Controller;
 use Composer\InstalledVersions;
 use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\Uuid\Uuid;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route(defaults: ['_routeScope' => ['api']])]
 class GithubInstallController
 {
-    public function __construct(
-        #[Autowire(service: 'Doctrine\DBAL\Connection')]
-        private readonly Connection $connection
-    ) {
+    private Connection $connection;
+
+    public function __construct(Connection $connection)
+    {
+        $this->connection = $connection;
     }
     #[Route(path: "/api/_action/github/install-versions", name: 'api.action.github.install_versions', methods: ['GET'])]
     public function getInstallVersions(Request $request): JsonResponse
