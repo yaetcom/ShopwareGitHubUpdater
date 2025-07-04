@@ -28,7 +28,18 @@
                 <!-- Version Dropdown -->
                 <div class="inline-field-container">
                     <label class="inline-label rvdw-color-true-text">Version:</label>
+                    <sw-single-select
+                            v-if="isShopware67"
+                            v-model:value="selectedVersion"
+                            :options="versionOptions"
+                            :placeholder="versionOptions.length > 0 ? null : 'Version auswählen'"
+                            class="inline-input version"
+                            :disabled="isLoadingVersions"
+                            labelProperty="label"
+                            valueProperty="value"
+                    />
                     <sw-select-field
+                            v-else
                             v-model:value="selectedVersion"
                             :placeholder="versionOptions.length > 0 ? null : 'Version auswählen'"
                             class="inline-input version"
